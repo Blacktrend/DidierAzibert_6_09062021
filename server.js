@@ -35,7 +35,7 @@ function errorHandler(error) {
         }
     }
     catch(err) {
-        console.error(err);
+        console.error("error: " + err);
     }
 }
 
