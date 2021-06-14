@@ -9,7 +9,7 @@ router.get("/:id", auth, sauceCtrl.getOneSauce);
 router.post("/", auth, multer, sauceCtrl.createSauce); // need multer-config to use filename (not imported in controler
 router.put("/:id", auth, multer, sauceCtrl.modifySauce);
 router.delete("/:id", auth, sauceCtrl.deleteSauce); // fs is already imported in controler
+router.post("/:id/like", auth, sauceCtrl.likeSauce);
 
-// reste à faire : route like
 
 module.exports = router;

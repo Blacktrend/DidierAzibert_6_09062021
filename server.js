@@ -19,7 +19,8 @@ const bind = typeof address === "string" ? "pipe " + address : "port :" + port;
 function errorHandler(error) {
     try {
         if (error.syscall !== "listen") {
-            throw error;
+            //throw error;
+            return console.log(error);
         }
         switch (error.code) {
             case "EACCES":
@@ -31,7 +32,8 @@ function errorHandler(error) {
                 process.exit(1);
                 break;
             default:
-                throw error;
+                //throw error;
+                return console.log(error);
         }
     }
     catch(err) {

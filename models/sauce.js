@@ -7,7 +7,7 @@ const sauceSchema = mongoose.Schema( {
     description: {type: String, required: true},
     mainPepper: {type: String, required: true},
     imageUrl: {type: String, required: true},
-    heat: {type: Number, required: true}, // VOIR SI POSSIBLE MIN-MAX entre 1 et 10 ?
+    heat: {type: Number, required: true},
     likes: {type: Number},
     dislikes: {type: Number},
     usersLiked: {type: Array},

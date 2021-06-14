@@ -4,27 +4,27 @@ const jwt = require("jsonwebtoken");
 //const dotenv = require("dotenv");
 //dotenv.config();
 
-exports.signup = (req, res) => {
-    bcrypt.hash(req.body.password, 10)
-        .then(hash => {
+exports.signup = async (req, res) => {
+    await bcrypt.hash(req.body.password, 10)
+        .then( async hash => {
             const user = new User({
                 email: req.body.email,
                 password: hash
             });
-            user.save()
+            await user.save()
                 .then( () => res.status(201).json({message: "Utilisateur créé !"}))
                 .catch(err => res.status(400).json({error: err}));
         })
         .catch(err => res.status(500).json({error: err}));
 }
 
-exports.login = (req, res) => {
-    User.findOne({email: req.body.email})
-        .then(user => {
+exports.login = async (req, res) => {
+    await User.findOne({email: req.body.email})
+        .then(async user => {
             if (!user) {
                 return res.status(401).json({error: "Utilisateur non trouvé !"});
             }
-            bcrypt.compare(req.body.password, user.password)
+            await bcrypt.compare(req.body.password, user.password)
                 .then(valid => {
                     if (!valid) {
                         return res.status(401).json({error: "Mot de passe incorrect !" });
