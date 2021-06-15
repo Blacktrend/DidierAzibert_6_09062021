@@ -32,7 +32,7 @@ exports.modifySauce = async (req, res) => {
             ...JSON.parse(req.body.sauce),
             imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`
         } : {...req.body}; // if no image, simply spread body
-    await Sauce.updateOne({_id: req.params.id}, {...sauceObject, _id: req.params.id})
+    await Sauce.updateOne({_id: req.params.id}, {...sauceObject, _id: req.params.id}) // is _id update really needed ??
         .then( () => res.status(201).json({message: "Sauce mise à jour !"}))
         .catch(err => res.status(400).json(err));
 }
@@ -69,7 +69,6 @@ exports.getAllSauces = async (req, res) => {
 exports.likeSauce = async (req, res) => {
     await Sauce.findOne({_id: req.params.id}) // id param in request url
         .then(async sauce => {
-            console.log("début de then");
             const userId = req.body.userId;
             const likedIndex = sauce.usersLiked.indexOf(req.body.userId); // check if user has already liked
             const dislikedIndex = sauce.usersDisliked.indexOf(req.body.userId); // check if user has already disliked
@@ -78,8 +77,6 @@ exports.likeSauce = async (req, res) => {
                 case 1:
                     sauce.usersLiked.push(userId);
                     sauce.likes++;
-                    console.log("usersLiked =" + sauce.usersLiked);
-                    console.log("likes =" + sauce.likes);
                     break;
                 case -1:
                     sauce.usersDisliked.push(userId);
@@ -98,15 +95,12 @@ exports.likeSauce = async (req, res) => {
                 default:
                     return console.error("Erreur de gestion du like/dislike !");
             }
-            console.log("fin du switch");
-            console.log("sauce = " + sauce);
-            console.log("params id = " + req.params.id);
-            await Sauce.updateOne({_id: req.params.id}, {sauce, _id: req.params.id})
+
+            await Sauce.updateOne({_id: req.params.id}, {likes: sauce.likes, dislikes: sauce.dislikes, usersLiked: sauce.usersLiked, usersDisliked: sauce.usersDisliked}) // A REVOIR *******
                 .then( () => {
                     res.status(201).json({message: "Vote enregistré !"});
-                    console.log("après updateOne");
                 })
-                .catch(err => res.status(400).json(err));
+                .catch(err => res.status(400).json(err)); // A REVOIR ********
         })
         .catch(err => {
             res.status(404).json(err);

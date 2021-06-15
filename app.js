@@ -1,9 +1,10 @@
 const express = require("express");
 const app = express();
+const helmet = require("helmet");
 const path = require("path"); // get server path (core module)
 const dotenv = require("dotenv");
 dotenv.config();
-const mongoose = require("mongoose");
+const mongoose = require("mongoose"); // ou ES6 = import mongoose from "mongoose";
 
 const sauceRoutes = require("./routes/sauce");
 const userRoutes = require("./routes/user");
@@ -17,6 +18,7 @@ mongoose.connect(`mongodb+srv://${process.env.DBUSER}:${process.env.DBPASSWORD}@
     .catch( (err) => console.log("Connexion à MongoDB échouée ! Erreur : " + err));
 
 // Headers
+app.use(helmet());
 app.use( async (request, response, next) => {
         response.setHeader("Access-Control-Allow-Origin", "*"); // don't leave * on production
         response.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content, Accept, Content-Type, Authorization");
@@ -24,7 +26,7 @@ app.use( async (request, response, next) => {
         next();
 });
 
-app.use(express.json());
+app.use(express.json({limit: "1kb"}));
 
 // images static route
 app.use("/images", express.static(path.join(__dirname, "images")));
