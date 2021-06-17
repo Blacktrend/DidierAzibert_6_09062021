@@ -26,7 +26,7 @@ app.use( async (request, response, next) => {
         next();
 });
 
-app.use(express.json({limit: "1kb"}));
+app.use(express.json());
 
 // images static route
 app.use("/images", express.static(path.join(__dirname, "images")));

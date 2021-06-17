@@ -1,8 +1,6 @@
 const User = require("../models/user");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-//const dotenv = require("dotenv");
-//dotenv.config();
 
 exports.signup = async (req, res) => {
     await bcrypt.hash(req.body.password, 10)
