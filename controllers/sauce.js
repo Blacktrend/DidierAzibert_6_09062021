@@ -1,49 +1,57 @@
 const Sauce = require("../models/sauce");
 const fs = require("fs"); // core module file system needed for deleteSauce
+const httpStatus = require("http-status");
 
 
-exports.createSauce = async (req, res) => {
-    // file + data expected, so need of JSON.parse for data
-    const sauceObject = await JSON.parse(req.body.sauce);
-    const sauce = await new Sauce( {
-        //...sauceObject, // we can use spread
-        userId: sauceObject.userId,
-        name: sauceObject.name,
-        manufacturer: sauceObject.manufacturer,
-        description: sauceObject.description,
-        mainPepper: sauceObject.mainPepper,
-        // req.file = multer property - req.protocol = Node property - req.get() = Node method
-        imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`,
-        heat: sauceObject.heat,
+exports.createSauce = (req, res) => {
+    // file + data expected, so need of JSON.parse for data (see sauce-validator middleware)
+    const sauce = new Sauce( {
+        userId: req.body.userId,
+        name: req.body.name,
+        manufacturer: req.body.manufacturer,
+        description: req.body.description,
+        mainPepper: req.body.mainPepper,
+        imageUrl: req.body.imageUrl,
+        heat: req.body.heat,
         likes: 0,
         dislikes: 0,
         usersLiked: [],
         usersDisliked: []
     });
-    await sauce.save()
-        .then( () => res.status(201).json({message: "Sauce enregistrée !"}))
+    sauce.save()
+        .then( () => res.status(httpStatus.CREATED).json({message: "Sauce enregistrée !"}))
         .catch(err => res.status(400).json(err));
 }
 
 
-exports.modifySauce = async (req, res) => {
-    const sauceObject = await req.file ? // if there's an image (modified)
-        {
-            ...JSON.parse(req.body.sauce),
-            imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`
-        } : {...req.body}; // if no image, simply spread body
-    await Sauce.updateOne({_id: req.params.id}, {...sauceObject, _id: req.params.id}) // is _id update really needed ??
+exports.modifySauce = (req, res) => {
+
+    if (req.body.imageUrl) { // if there is a new image
+        Sauce.findOne({_id: req.params.id}) // we need to delete old image
+            .then( sauce => {
+                const filename = sauce.imageUrl.split("/images/")[1]; // get only filename
+                fs.unlink(`images/${filename}`, (err => { // delete
+                    if (err) console.error(err);
+                    else {
+                        console.log("\nDeleted file: " + filename);
+                    }
+                }));
+            })
+            .catch(err => res.status(500).json(err));
+    }
+    
+    Sauce.updateOne({_id: req.params.id}, req.body)
         .then( () => res.status(201).json({message: "Sauce mise à jour !"}))
         .catch(err => res.status(400).json(err));
 }
 
 
-exports.deleteSauce = async (req, res) => {
-    await Sauce.findOne({_id: req.params.id}) // we need first to delete image with fs
-        .then(async sauce => {
-            const filename = sauce.imageUrl.split("/images/")[1]; // get only filename
-            await fs.unlink(`images/${filename}`, async () => {
-                await Sauce.deleteOne({_id: req.params.id}) // delete in db after fs unlink
+exports.deleteSauce = (req, res) => {
+    Sauce.findOne({_id: req.params.id}) // we need first to delete image with fs
+        .then( sauce => {
+            const filename = sauce.imageUrl.split("/images/")[1];
+            fs.unlink(`images/${filename}`,  () => {
+                Sauce.deleteOne({_id: req.params.id}) // delete in db after fs unlink
                     .then( () => res.status(200).json({message: "Sauce supprimée !"}))
                     .catch(err => res.status(500).json(err));
             });
@@ -52,35 +60,39 @@ exports.deleteSauce = async (req, res) => {
 }
 
 
-exports.getOneSauce = async (req, res) => {
-    await Sauce.findOne({_id: req.params.id})
+exports.getOneSauce = (req, res) => {
+    Sauce.findOne({_id: req.params.id})
         .then(sauce => res.status(200).json(sauce))
         .catch(err => res.status(404).json(err));
 }
 
 
-exports.getAllSauces = async (req, res) => {
-    await Sauce.find()
+exports.getAllSauces = (req, res) => {
+    Sauce.find()
         .then(sauces => res.status(200).json(sauces))
         .catch(err => res.status(400).json(err));
 }
 
 
-exports.likeSauce = async (req, res) => {
-    await Sauce.findOne({_id: req.params.id}) // id param in request url
-        .then(async sauce => {
+exports.likeSauce = (req, res) => {
+    Sauce.findOne({_id: req.params.id}) // id param in request url
+        .then( sauce => {
             const userId = req.body.userId;
-            const likedIndex = sauce.usersLiked.indexOf(req.body.userId); // check if user has already liked
-            const dislikedIndex = sauce.usersDisliked.indexOf(req.body.userId); // check if user has already disliked
+            const likedIndex = sauce.usersLiked.indexOf(userId); // check if user has already liked
+            const dislikedIndex = sauce.usersDisliked.indexOf(userId); // check if user has already disliked
 
             switch(req.body.like) {
                 case 1:
-                    sauce.usersLiked.push(userId);
-                    sauce.likes++;
+                    if (likedIndex < 0) {
+                        sauce.usersLiked.push(userId);
+                        sauce.likes++;
+                    }
                     break;
                 case -1:
-                    sauce.usersDisliked.push(userId);
-                    sauce.dislikes++;
+                    if (dislikedIndex < 0) {
+                        sauce.usersDisliked.push(userId);
+                        sauce.dislikes++;
+                    }
                     break;
                 case 0:
                     if (dislikedIndex >=0) {
@@ -93,16 +105,14 @@ exports.likeSauce = async (req, res) => {
                     }
                     break;
                 default:
-                    return console.error("Erreur de gestion du like/dislike !");
+                    return res.status(400).console.error("Erreur de gestion du like !");
             }
 
-            await Sauce.updateOne({_id: req.params.id}, {likes: sauce.likes, dislikes: sauce.dislikes, usersLiked: sauce.usersLiked, usersDisliked: sauce.usersDisliked}) // A REVOIR *******
+            Sauce.updateOne({_id: req.params.id}, sauce)
                 .then( () => {
                     res.status(201).json({message: "Vote enregistré !"});
                 })
-                .catch(err => res.status(400).json(err)); // A REVOIR ********
+                .catch(err => res.status(400).json(err));
         })
-        .catch(err => {
-            res.status(404).json(err);
-        });
+        .catch(err => res.status(400).json(err));
 }

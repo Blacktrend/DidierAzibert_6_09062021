@@ -1,13 +1,27 @@
 const {body, validationResult} = require("express-validator");
 
-module.exports = async (req, res, next) => {
-    body("name").notEmpty().trim().escape();
-    body("manufacturer").notEmpty().trim().escape();
-    body("description").notEmpty().trim().escape();
-    body("mainPepper").notEmpty().trim().escape();
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({errors: errors.array()});
-    }
+exports.bodyParse = (req, res, next) => {
+
+    req.body = req.file ? // if there's an image (creation or modification)
+        {
+            ...JSON.parse(req.body.sauce),
+            // req.file = multer property - req.protocol = Node property - req.get() = Node method
+            imageUrl: `${req.protocol}://${req.get("host")}/images/${req.file.filename}`
+        } : req.body;
     next();
 }
+
+
+exports.validate = [
+    body("name", "name must be fulfilled").notEmpty().trim().escape()
+]
+
+
+exports.validationErrors = (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+    next();
+}
+
+
+
