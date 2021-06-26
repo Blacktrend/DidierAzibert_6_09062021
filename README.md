@@ -21,3 +21,6 @@ API routes to test with Postman (with authentification) :
 - PUT modify sauce:     http://localhost:3000/api/sauces/:id
 - DELETE sauce:         http://localhost:3000/api/sauces/:id
 - POST like sauce:      http://localhost:3000/api/sauces/:id/like
+
+
+***<b> if signup or login are blocked after 6 attempts tests, just stop and restart the backend server (signup counts for 2 attempts) </b>
